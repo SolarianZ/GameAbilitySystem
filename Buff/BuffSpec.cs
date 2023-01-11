@@ -4,10 +4,10 @@ using System.Collections.Generic;
 namespace GBG.GameAbilitySystem.Buff
 {
     /// <summary>
-    /// Buff数据。
+    /// Buff描述。
     /// </summary>
     [Serializable]
-    public class BuffData
+    public class BuffSpec
     {
         /// <summary>
         /// 【主键】配置Id。0为无效值。
@@ -49,9 +49,4 @@ namespace GBG.GameAbilitySystem.Buff
         /// </summary>
         public List<CommonCustomParam> CustomParams;
     }
-
-    // public class BuffTypeDefineData
-    // {
-    //     public int TypeId;
-    // }
 }

@@ -3,10 +3,10 @@
 namespace GBG.GameAbilitySystem.Skill
 {
     /// <summary>
-    /// 技能显示层数据。
+    /// 技能显示层描述。
     /// </summary>
     [Serializable]
-    public class SkillViewData
+    public class SkillViewSpec
     {
         // Ln: Localization
         // Fmt: Format

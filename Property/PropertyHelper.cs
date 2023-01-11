@@ -5,32 +5,26 @@ namespace GBG.GameAbilitySystem.Property
 {
     public static class PropertyHelper
     {
-        public static IPropertyStaticDataProvider? PropertyStaticDataProvider { get; set; }
-
-        public static PropertyModifier GetPropertyModifier(this PropertyData propertyData)
+        public static PropertyModifier GetPropertyModifier(this Property property,
+            IPropertySpecProvider propertySpecProvider)
         {
-            if (PropertyStaticDataProvider == null)
+            if (!propertySpecProvider.TryGetPropertySpec(property.SpecId,
+                    out var propertySpec))
             {
-                throw new NullReferenceException("Property static data provider is null.");
+                throw new ArgumentOutOfRangeException(nameof(property),
+                    $"Property spec not found, property.Id = {property.Id}, property.SpecId = {property.SpecId}.");
             }
 
-            if (!PropertyStaticDataProvider.TryGetPropertyDefineData(propertyData.TypeId,
-                    out var propertyDefineData))
-            {
-                throw new ArgumentOutOfRangeException(nameof(propertyData),
-                    $"Property define data of property type id '{propertyData.TypeId}' does not exist.");
-            }
-
-            switch (propertyDefineData.Position)
+            switch (propertySpec.Position)
             {
                 case PropertyPosition.InnerAddCoef:
-                    return new PropertyModifier { InnerAddCoef = propertyData.Value };
+                    return new PropertyModifier { InnerAddCoef = property.Value };
 
                 case PropertyPosition.MulCoef:
-                    return new PropertyModifier { MulCoef = propertyData.Value };
+                    return new PropertyModifier { MulCoef = property.Value };
 
                 case PropertyPosition.OuterAddCoef:
-                    return new PropertyModifier { OuterAddCoef = propertyData.Value };
+                    return new PropertyModifier { OuterAddCoef = property.Value };
 
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -63,36 +57,28 @@ namespace GBG.GameAbilitySystem.Property
             return result;
         }
 
-        public static double ClampPropertyById(int propertyId, double propertyValue)
+        public static double ClampPropertyById(int propertyId, double propertyValue,
+            IPropertyProvider propertyProvider, IPropertySpecProvider propertySpecProvider)
         {
-            if (PropertyStaticDataProvider == null)
+            if (!propertyProvider.TryGetProperty(propertyId, out var property))
             {
-                throw new NullReferenceException("Property static data provider is null.");
+                throw new ArgumentOutOfRangeException(nameof(propertyId),
+                    $"Property not found, property.Id = {property.Id}.");
             }
 
-            if (!PropertyStaticDataProvider.TryGetPropertyData(propertyId, out var propertyData))
-            {
-                throw new ArgumentOutOfRangeException(nameof(propertyData),
-                    $"Property data of property id '{propertyId}' does not exist.");
-            }
-
-            return ClampPropertyByTypeId(propertyData.TypeId, propertyValue);
+            return ClampPropertyBySpecId(property.SpecId, propertyValue, propertySpecProvider);
         }
 
-        public static double ClampPropertyByTypeId(int propertyTypeId, double propertyValue)
+        public static double ClampPropertyBySpecId(int propertySpecId, double propertyValue,
+            IPropertySpecProvider propertySpecProvider)
         {
-            if (PropertyStaticDataProvider == null)
+            if (!propertySpecProvider.TryGetPropertySpec(propertySpecId, out var propertySpec))
             {
-                throw new NullReferenceException("Property static data provider is null.");
+                throw new ArgumentOutOfRangeException(nameof(propertySpecId),
+                    $"Property spec not found, property.SpecId = {propertySpecId}.");
             }
 
-            if (!PropertyStaticDataProvider.TryGetPropertyDefineData(propertyTypeId, out var propertyDefineData))
-            {
-                throw new ArgumentOutOfRangeException(nameof(propertyTypeId),
-                    $"Property define data of property type id '{propertyTypeId}' does not exist.");
-            }
-
-            return PropertyDefineData.Clamp(propertyValue, propertyDefineData);
+            return PropertySpec.Clamp(propertyValue, propertySpec);
         }
     }
 }

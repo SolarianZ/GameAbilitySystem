@@ -3,10 +3,10 @@
 namespace GBG.GameAbilitySystem.Buff
 {
     /// <summary>
-    /// Buff显示层数据。
+    /// Buff显示层描述。
     /// </summary>
     [Serializable]
-    public class BuffViewData
+    public class BuffViewSpec
     {
         // Ln: Localization
         // Fmt: Format

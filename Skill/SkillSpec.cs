@@ -4,10 +4,10 @@ using System.Collections.Generic;
 namespace GBG.GameAbilitySystem.Skill
 {
     /// <summary>
-    /// 技能数据。
+    /// 技能描述。
     /// </summary>
     [Serializable]
-    public class SkillData
+    public class SkillSpec
     {
         /// <summary>
         /// 【主键】配置Id。0为无效值。
