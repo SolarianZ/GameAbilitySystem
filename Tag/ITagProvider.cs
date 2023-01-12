@@ -9,8 +9,8 @@ namespace GBG.GameAbilitySystem.Tag
 
         bool HasAnyTag();
 
-        int GetTagCount(string tag, object source, bool ignoreInactiveTags);
+        bool ContainsTag(string tag, object instantContext, bool ignoreInactiveTags);
 
-        int GetTagCountIgnoreSource(string tag, bool ignoreInactiveTags);
+        int GetTagCount(string tag, object instantContext, bool ignoreInactiveTags);
     }
 }

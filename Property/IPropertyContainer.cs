@@ -45,13 +45,27 @@ namespace GBG.GameAbilityProperty
         void RemoveAllCustomProperties();
     }
 
+    public delegate bool CheckPropertyActiveState(Property property, object instantContext);
+
     public sealed class PropertyContainer : IPropertyContainer, IPropertyProvider
     {
         public bool IsPropertiesDirty { get; private set; }
 
+        private CheckPropertyActiveState? _propertyActiveStateChecker;
+
 
         public event Action? OnPropertiesDirty;
 
+
+        public PropertyContainer(CheckPropertyActiveState propertyChecker)
+        {
+            SetPropertyActiveStateChecker(propertyChecker);
+        }
+
+        public void SetPropertyActiveStateChecker(CheckPropertyActiveState propertyChecker)
+        {
+            _propertyActiveStateChecker = propertyChecker;
+        }
 
         public void SetPropertiesDirty()
         {
@@ -77,9 +91,21 @@ namespace GBG.GameAbilityProperty
         public bool ContainsProperty(int propertyId, object instantContext,
             bool ignoreInactiveProperties)
         {
-            if (_customPropertyTable.ContainsKey(propertyId))
+            if (_customPropertyTable.TryGetValue(propertyId, out List<Property> properties))
             {
-                return true;
+                if (!ignoreInactiveProperties && properties.Count > 0)
+                {
+                    return true;
+                }
+
+                foreach (var property in properties)
+                {
+                    var isPropertyActive = _propertyActiveStateChecker?.Invoke(property, instantContext) ?? true;
+                    if (isPropertyActive)
+                    {
+                        return true;
+                    }
+                }
             }
 
             foreach (var propertyProvider in _subPropertyProviders)
@@ -102,6 +128,12 @@ namespace GBG.GameAbilityProperty
             {
                 foreach (var property in properties)
                 {
+                    var isPropertyActive = _propertyActiveStateChecker?.Invoke(property, instantContext) ?? true;
+                    if (!isPropertyActive)
+                    {
+                        continue;
+                    }
+
                     propertyValue += property.Value;
                 }
             }
@@ -126,6 +158,12 @@ namespace GBG.GameAbilityProperty
             {
                 foreach (var property in properties)
                 {
+                    var isPropertyActive = _propertyActiveStateChecker?.Invoke(property, instantContext) ?? true;
+                    if (!isPropertyActive)
+                    {
+                        continue;
+                    }
+
                     propertyValue += property.Value;
 
                     if (propertySpecId == 0)
