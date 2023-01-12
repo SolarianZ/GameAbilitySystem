@@ -3,7 +3,7 @@
     /// <summary>
     /// Buff叠加方式。
     /// </summary>
-    public enum BuffOverlayMode : byte
+    public enum BuffStackingMode : byte
     {
         /// <summary>
         /// 禁止叠加，忽略后来者。
@@ -36,8 +36,21 @@
         LinearStackShareEarliestStartTime = 5,
 
         /// <summary>
-        /// 自定义。
+        /// 数值线性堆叠，各实例间共享最晚的起始时间。
         /// </summary>
-        Custom = 255,
+        LinearStackShareLatestStartTime = 6,
+
+
+        // 自定义叠加方式
+        Custom0 = 246,
+        Custom1 = 247,
+        Custom2 = 248,
+        Custom3 = 249,
+        Custom4 = 250,
+        Custom5 = 251,
+        Custom6 = 252,
+        Custom7 = 253,
+        Custom8 = 254,
+        Custom9 = 255,
     }
 }

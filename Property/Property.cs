@@ -9,12 +9,12 @@ namespace GBG.GameAbilitySystem.Property
     public class Property
     {
         /// <summary>
-        /// 【主键】属性Id。
+        /// 【主键】属性Id。0为无效值。
         /// </summary>
         public int Id;
 
         /// <summary>
-        /// 【外键】属性描述Id。
+        /// 【外键：<see cref="PropertySpec.Id"/>】属性规则Id。
         /// </summary>
         public int SpecId;
 
@@ -26,7 +26,7 @@ namespace GBG.GameAbilitySystem.Property
 
         public override string ToString()
         {
-            return $"Prop{{Id={Id}, SpecId={SpecId}, Value={Value:F5}}}";
+            return $"Property(Id={Id}, SpecId={SpecId}, Value={Value:F5})";
         }
     }
 }

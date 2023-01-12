@@ -4,8 +4,11 @@
     {
         bool ContainsProperty(int propertyId);
 
-        Property GetProperty(int propertyId);
+        bool ContainsActiveProperty(int propertyId, object instantContext);
 
-        bool TryGetProperty(int propertyId, out Property property);
+        double GetPropertyValue(int propertyId, object instantContext);
+
+        bool TryGetPropertyValue(int propertyId, object instantContext,
+            out double propertyValue, out int propertySpecId);
     }
 }

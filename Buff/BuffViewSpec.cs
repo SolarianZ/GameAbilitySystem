@@ -3,7 +3,7 @@
 namespace GBG.GameAbilitySystem.Buff
 {
     /// <summary>
-    /// Buff显示层描述。
+    /// Buff显示规则。
     /// </summary>
     [Serializable]
     public class BuffViewSpec
@@ -11,6 +11,9 @@ namespace GBG.GameAbilitySystem.Buff
         // Ln: Localization
         // Fmt: Format
 
+        /// <summary>
+        /// 【主键|外键】Buff显示规则Id。应与对应Buff的<see cref="BuffSpec.Id"/>保持相同。
+        /// </summary>
         public int Id;
 
         /// <summary>

@@ -16,6 +16,7 @@ namespace GBG.GameAbilitySystem.Property
 
         bool UnregisterCustomProperty(int propertyId);
 
+
         int GetPropertyIdCountOfFamily(int propertyFamilyId);
 
         void GetPropertyIdsOfFamily(int propertyFamilyId, Span<int> result);

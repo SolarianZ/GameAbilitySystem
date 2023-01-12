@@ -50,5 +50,4 @@
 
     // { Tag : { TagSource : TagCount } }
     // Dictionary<string, Dictionary<object, int>> _tagTable;
-
 }

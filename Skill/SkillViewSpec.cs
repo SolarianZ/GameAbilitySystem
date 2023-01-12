@@ -3,7 +3,7 @@
 namespace GBG.GameAbilitySystem.Skill
 {
     /// <summary>
-    /// 技能显示层描述。
+    /// 技能显示规则。
     /// </summary>
     [Serializable]
     public class SkillViewSpec
@@ -12,7 +12,7 @@ namespace GBG.GameAbilitySystem.Skill
         // Fmt: Format
 
         /// <summary>
-        /// 【主键】技能Id。
+        /// 【主键|外键】技能显示规则Id。应与对应技能的<see cref="SkillSpec.Id"/>保持相同。
         /// </summary>
         public int Id;
 

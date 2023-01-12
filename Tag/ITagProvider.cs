@@ -2,8 +2,8 @@
 {
     public interface ITagProvider
     {
-        int GetTagCount(string tag, object source);
+        int GetTagCount(string tag, object source, bool ignoreInactiveTags);
 
-        int GetTagCountIgnoreSource(string tag);
+        int GetTagCountIgnoreSource(string tag, bool ignoreInactiveTags);
     }
 }
