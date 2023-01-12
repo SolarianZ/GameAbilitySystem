@@ -23,6 +23,13 @@ namespace GBG.GameAbilitySystem.Property
         /// </summary>
         public double Value;
 
+        public event Action<Property>? OnValueChanged;
+
+
+        public void NotifyValueChanged()
+        {
+            OnValueChanged?.Invoke(this);
+        }
 
         public override string ToString()
         {

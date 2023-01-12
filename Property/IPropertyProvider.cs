@@ -1,10 +1,16 @@
-﻿namespace GBG.GameAbilitySystem.Property
+﻿using System;
+
+namespace GBG.GameAbilitySystem.Property
 {
     public interface IPropertyProvider
     {
-        bool ContainsProperty(int propertyId);
+        event Action OnPropertiesDirty;
 
-        bool ContainsActiveProperty(int propertyId, object instantContext);
+
+        bool HasAnyProperty();
+
+        bool ContainsProperty(int propertyId, object instantContext,
+            bool ignoreInactiveProperties);
 
         double GetPropertyValue(int propertyId, object instantContext);
 

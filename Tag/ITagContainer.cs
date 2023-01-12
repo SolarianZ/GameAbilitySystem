@@ -1,19 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using GBG.GameAbilitySystem.Tag;
+using System;
+using System.Collections.Generic;
 
-namespace GBG.GameAbilitySystem.Tag
+namespace GBG.GameAbilityTag
 {
     public interface ITagContainer : ITagProvider
     {
-        bool IsTagsDirty { get; protected set; }
-
-        ITagContainer? ParentTagContainer { get; set; }
+        bool IsTagsDirty { get; }
 
 
-        void SetTagsDirty()
-        {
-            IsTagsDirty = true;
-            ParentTagContainer?.SetTagsDirty();
-        }
+        void SetTagsDirty();
+
+        void CollectTags();
 
         bool AddTagProvider(ITagProvider tagProvider);
 
@@ -49,18 +47,26 @@ namespace GBG.GameAbilitySystem.Tag
         void RemoveAllCustomTags();
     }
 
-    // todo: Tag缓存
-
     public sealed class TagContainer : ITagContainer, ITagProvider
     {
-        public ITagContainer? ParentTagContainer { get; set; }
+        public bool IsTagsDirty { get; private set; }
 
-        public bool IsTagsDirty { get => _isTagsDirty; private set => _isTagsDirty = value; }
+        public event Action? OnTagsDirty;
 
-        bool ITagContainer.IsTagsDirty { get => _isTagsDirty; set => _isTagsDirty = value; }
 
-        private bool _isTagsDirty;
+        public void SetTagsDirty()
+        {
+            if (IsTagsDirty)
+            {
+                return;
+            }
 
+            IsTagsDirty = true;
+            OnTagsDirty?.Invoke();
+        }
+
+        // todo: Tag缓存
+        public void CollectTags() => throw new NotImplementedException();
 
         public bool HasAnyTag()
         {
@@ -73,21 +79,21 @@ namespace GBG.GameAbilitySystem.Tag
         {
             if (string.IsNullOrEmpty(tag))
             {
-                throw new System.ArgumentNullException(nameof(tag), "Tag is null or empty.");
+                throw new ArgumentNullException(nameof(tag), "Tag is null or empty.");
             }
 
             if (source == null)
             {
-                throw new System.ArgumentNullException(nameof(source), "Tag source is null.");
+                throw new ArgumentNullException(nameof(source), "Tag source is null.");
             }
 
             var tagCount = 0;
-            foreach (var provider in _tagProviders)
+            foreach (var provider in _subTagProviders)
             {
                 tagCount += provider.GetTagCount(tag, source, ignoreInactiveTags);
             }
 
-            if (_tagTable.TryGetValue(tag, out Dictionary<object, int>? counterTable))
+            if (_customTagTable.TryGetValue(tag, out Dictionary<object, int> counterTable))
             {
                 if (counterTable.TryGetValue(source, out var count))
                 {
@@ -102,16 +108,16 @@ namespace GBG.GameAbilitySystem.Tag
         {
             if (string.IsNullOrEmpty(tag))
             {
-                throw new System.ArgumentNullException(nameof(tag), "Tag is null or empty.");
+                throw new ArgumentNullException(nameof(tag), "Tag is null or empty.");
             }
 
             var tagCount = 0;
-            foreach (var provider in _tagProviders)
+            foreach (var provider in _subTagProviders)
             {
                 tagCount += provider.GetTagCountIgnoreSource(tag, ignoreInactiveTags);
             }
 
-            if (_tagTable.TryGetValue(tag, out Dictionary<object, int>? counterTable))
+            if (_customTagTable.TryGetValue(tag, out Dictionary<object, int> counterTable))
             {
                 foreach (var count in counterTable.Values)
                 {
@@ -123,28 +129,30 @@ namespace GBG.GameAbilitySystem.Tag
         }
 
 
-        #region TagProvider
+        #region 子标签提供器
 
-        private readonly List<ITagProvider> _tagProviders = new List<ITagProvider>();
+        private readonly List<ITagProvider> _subTagProviders = new List<ITagProvider>();
 
 
         public bool AddTagProvider(ITagProvider tagProvider)
         {
             if (tagProvider == null)
             {
-                throw new System.ArgumentNullException(nameof(tagProvider),
+                throw new ArgumentNullException(nameof(tagProvider),
                     "Tag provider is null.");
             }
 
-            if (_tagProviders.Contains(tagProvider))
+            if (_subTagProviders.Contains(tagProvider))
             {
                 return false;
             }
 
-            _tagProviders.Add(tagProvider);
+            _subTagProviders.Add(tagProvider);
+            tagProvider.OnTagsDirty += SetTagsDirty;
+
             if (tagProvider.HasAnyTag())
             {
-                ((ITagContainer)this).SetTagsDirty();
+                SetTagsDirty();
             }
 
             return true;
@@ -154,15 +162,17 @@ namespace GBG.GameAbilitySystem.Tag
         {
             if (tagProvider == null)
             {
-                throw new System.ArgumentNullException(nameof(tagProvider),
+                throw new ArgumentNullException(nameof(tagProvider),
                     "Tag provider is null.");
             }
 
-            if (_tagProviders.Remove(tagProvider))
+            if (_subTagProviders.Remove(tagProvider))
             {
+                tagProvider.OnTagsDirty -= SetTagsDirty;
+
                 if (tagProvider.HasAnyTag())
                 {
-                    ((ITagContainer)this).SetTagsDirty();
+                    SetTagsDirty();
                 }
 
                 return true;
@@ -174,7 +184,7 @@ namespace GBG.GameAbilitySystem.Tag
 
         private bool HasAnyTagInProviders()
         {
-            foreach (var provider in _tagProviders)
+            foreach (var provider in _subTagProviders)
             {
                 if (provider.HasAnyTag())
                 {
@@ -191,28 +201,29 @@ namespace GBG.GameAbilitySystem.Tag
         #region 自定义标签
 
         /// <summary>
-        /// 标签表。
+        /// 自定义标签表。
         /// 键：标签；
         /// 值：标签来源和此来源提供的此标签个数。
         /// </summary>
-        private readonly Dictionary<string, Dictionary<object, int>> _tagTable = new Dictionary<string, Dictionary<object, int>>();
+        private readonly Dictionary<string, Dictionary<object, int>> _customTagTable
+            = new Dictionary<string, Dictionary<object, int>>();
 
         public void AddCustomTag(string tag, object source)
         {
             if (string.IsNullOrEmpty(tag))
             {
-                throw new System.ArgumentNullException(nameof(tag), "Tag is null or empty.");
+                throw new ArgumentNullException(nameof(tag), "Tag is null or empty.");
             }
 
             if (source == null)
             {
-                throw new System.ArgumentNullException(nameof(source), "Tag source is null.");
+                throw new ArgumentNullException(nameof(source), "Tag source is null.");
             }
 
-            if (!_tagTable.TryGetValue(tag, out Dictionary<object, int>? counterTable))
+            if (!_customTagTable.TryGetValue(tag, out Dictionary<object, int> counterTable))
             {
                 counterTable = new Dictionary<object, int>();
-                _tagTable.Add(tag, counterTable);
+                _customTagTable.Add(tag, counterTable);
             }
 
             if (!counterTable.TryGetValue(source, out var count))
@@ -221,26 +232,28 @@ namespace GBG.GameAbilitySystem.Tag
             }
 
             counterTable[source] = count + 1;
+
+            SetTagsDirty();
         }
 
         public bool RemoveCustomTag(string tag, object source, int count = 1)
         {
             if (string.IsNullOrEmpty(tag))
             {
-                throw new System.ArgumentNullException(nameof(tag), "Tag is null or empty.");
+                throw new ArgumentNullException(nameof(tag), "Tag is null or empty.");
             }
 
             if (source == null)
             {
-                throw new System.ArgumentNullException(nameof(source), "Tag source is null.");
+                throw new ArgumentNullException(nameof(source), "Tag source is null.");
             }
 
             if (count < 1)
             {
-                throw new System.ArgumentOutOfRangeException(nameof(count), "Tag removal count less than 1.");
+                throw new ArgumentOutOfRangeException(nameof(count), "Tag removal count less than 1.");
             }
 
-            if (!_tagTable.TryGetValue(tag, out Dictionary<object, int>? counterTable))
+            if (!_customTagTable.TryGetValue(tag, out Dictionary<object, int> counterTable))
             {
                 // 没有tag
                 return false;
@@ -270,7 +283,7 @@ namespace GBG.GameAbilitySystem.Tag
             }
 
             // 标签已变化
-            ((ITagContainer)this).SetTagsDirty();
+            SetTagsDirty();
 
             return true;
 
@@ -279,7 +292,7 @@ namespace GBG.GameAbilitySystem.Tag
                 counterTable.Remove(source);
                 if (counterTable.Count == 0)
                 {
-                    _tagTable.Remove(tag);
+                    _customTagTable.Remove(tag);
                 }
             }
         }
@@ -288,10 +301,10 @@ namespace GBG.GameAbilitySystem.Tag
         {
             if (string.IsNullOrEmpty(tag))
             {
-                throw new System.ArgumentNullException(nameof(tag), "Tag is null or empty.");
+                throw new ArgumentNullException(nameof(tag), "Tag is null or empty.");
             }
 
-            if (!_tagTable.Remove(tag, out Dictionary<object, int>? counterTable))
+            if (!_customTagTable.Remove(tag, out Dictionary<object, int> counterTable))
             {
                 return false;
             }
@@ -301,7 +314,7 @@ namespace GBG.GameAbilitySystem.Tag
             {
                 if (count > 0)
                 {
-                    ((ITagContainer)this).SetTagsDirty();
+                    SetTagsDirty();
                     break;
                 }
             }
@@ -312,18 +325,18 @@ namespace GBG.GameAbilitySystem.Tag
         public void RemoveAllCustomTags()
         {
             var hasAnyCustomTag = HasAnyCustomTag();
-            _tagTable.Clear();
+            _customTagTable.Clear();
 
             if (hasAnyCustomTag)
             {
-                ((ITagContainer)this).SetTagsDirty();
+                SetTagsDirty();
             }
         }
 
 
         private bool HasAnyCustomTag()
         {
-            foreach (Dictionary<object, int> counterTable in _tagTable.Values)
+            foreach (Dictionary<object, int> counterTable in _customTagTable.Values)
             {
                 foreach (var count in counterTable.Values)
                 {
