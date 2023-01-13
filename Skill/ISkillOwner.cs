@@ -2,8 +2,8 @@
 {
     public interface ISkillOwner
     {
-        bool MeetSkillCosts(object skillCosts);
+        bool MeetSkillActivationCosts(object costs);
 
-        bool CommitMeetSkillCosts(object skillCosts);
+        bool CommitSkillActivationCosts(object costs);
     }
 }

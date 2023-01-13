@@ -100,6 +100,13 @@ namespace GBG.GameAbilitySystem.Buff
 
         protected abstract bool IsTagActive(string tag, object instantContext);
 
+
+        /// <summary>
+        /// 尝试获取自定义逻辑参数。
+        /// </summary>
+        /// <param name="key">参数键。</param>
+        /// <param name="value">参数值。</param>
+        /// <returns>是否成功找到参数。</returns>
         protected bool TryGetCustomLogicParam(string key, out double value)
         {
             if (BuffSpec.CustomLogicParams == null)

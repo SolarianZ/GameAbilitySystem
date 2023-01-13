@@ -2,6 +2,11 @@
 
 namespace GBG.GameAbilitySystem.Skill
 {
+    /// <summary>
+    /// 概率计算器。
+    /// </summary>
+    /// <param name="chance">命中几率，0.0代表必定命中，1.0代表必定不命中。</param>
+    /// <returns>是否命中概率。</returns>
     public delegate bool ProbabilityCalculator(double chance);
 
     // 用于在线游戏时，需要保证技能中的所有状态可以复制，当前版本不满足此需求。
@@ -27,6 +32,8 @@ namespace GBG.GameAbilitySystem.Skill
         //protected virtual bool EnableTickTimeShift => true;
 
 
+        // todo: raise skill events
+
         public event SkillActivatedCallback? OnSkillActivated;
 
         public event Action<SkillHandle>? OnSkillCanceled;
@@ -34,6 +41,9 @@ namespace GBG.GameAbilitySystem.Skill
         public event Action<SkillHandle>? OnSkillEnded;
 
 
+        /// <summary>
+        /// 概率计算器。
+        /// </summary>
         protected ProbabilityCalculator ProbabilityCalculator { get; }
 
 
@@ -60,8 +70,14 @@ namespace GBG.GameAbilitySystem.Skill
 
         #region Lifecycle
 
+        /// <summary>
+        /// 技能持有者。
+        /// </summary>
         protected ISkillOwner SkillOwner { get; private set; }
 
+        /// <summary>
+        /// 技能现场。
+        /// </summary>
         protected object? PersistentContext { get; private set; }
 
 
@@ -90,6 +106,7 @@ namespace GBG.GameAbilitySystem.Skill
                     if (CooldownTimeRemaining == 0)
                     {
                         SkillState = SkillState.Idle;
+                        _idleDuration = 0;
                     }
 
                     break;
@@ -141,8 +158,16 @@ namespace GBG.GameAbilitySystem.Skill
             }
         }
 
+        /// <summary>
+        /// 前置帧更新，在<see cref="SkillBase"/>的帧更新之前执行。
+        /// </summary>
+        /// <param name="deltaTime"></param>
         protected virtual void OnPreTick(uint deltaTime) { }
 
+        /// <summary>
+        /// 后置帧更新，在<see cref="SkillBase"/>的帧更新之后执行。
+        /// </summary>
+        /// <param name="deltaTime"></param>
         protected virtual void OnPostTick(uint deltaTime) { }
 
 
@@ -164,11 +189,15 @@ namespace GBG.GameAbilitySystem.Skill
             PersistentContext = persistentContext;
 
             SkillState = SkillState.Idle;
+            _idleDuration = 0;
 
             OnEquip();
         }
 
-        protected virtual void OnEquip() { }
+        /// <summary>
+        /// 技能装备时回调。
+        /// </summary>
+        protected abstract void OnEquip();
 
         void ISkill.OnUnequip()
         {
@@ -184,9 +213,16 @@ namespace GBG.GameAbilitySystem.Skill
             PersistentContext = null;
 
             SkillState = SkillState.Idle;
+            IsBanned = false;
+            CooldownTimeRemaining = 0;
+            ActiveStageTimeRemaining = 0;
+            _idleDuration = 0;
         }
 
-        protected virtual void OnUnequip() { }
+        /// <summary>
+        /// 技能卸载时回调。
+        /// </summary>
+        protected abstract void OnUnequip();
 
         void ISkill.Ban()
         {
@@ -199,7 +235,10 @@ namespace GBG.GameAbilitySystem.Skill
             OnBanned();
         }
 
-        protected virtual void OnBanned() { }
+        /// <summary>
+        /// 技能被禁用时回调。
+        /// </summary>
+        protected abstract void OnBanned();
 
         void ISkill.Unban()
         {
@@ -212,14 +251,38 @@ namespace GBG.GameAbilitySystem.Skill
             OnUnbanned();
         }
 
-        protected virtual void OnUnbanned() { }
+        /// <summary>
+        /// 技能被接触禁用时回调。
+        /// </summary>
+        protected abstract void OnUnbanned();
 
         #endregion
 
 
         #region Activation
 
-        public abstract bool CanActivateSkill(); // => SkillState == SkillState.Idle;
+        public bool CanActivateSkill()
+        {
+            if (!CanActivateSkillIgnoreCosts())
+            {
+                return false;
+            }
+
+            if (!CalculateSkillActivationCosts(out object costs))
+            {
+                return true;
+            }
+
+            if (SkillOwner.MeetSkillActivationCosts(costs))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        protected abstract bool CanActivateSkillIgnoreCosts(); // => SkillState == SkillState.Idle;
+
 
         public bool TryActivateSkill()
         {
@@ -245,6 +308,12 @@ namespace GBG.GameAbilitySystem.Skill
 
             SkillState = SkillState.Active;
             ActiveStageTimeRemaining = GetActiveStageDuration();
+
+            if (CalculateSkillActivationCosts(out object costs))
+            {
+                SkillOwner.CommitSkillActivationCosts(costs);
+            }
+
             return true;
         }
 
@@ -284,6 +353,11 @@ namespace GBG.GameAbilitySystem.Skill
         protected abstract bool CancelSkill();
 
 
+        /// <summary>
+        /// 尝试完结技能。
+        /// 不同于<see cref="TryCancelSkill"/>方法，完结意味着技能正常执行完整个激活周期。
+        /// </summary>
+        /// <returns>是否成功完结。</returns>
         protected bool TryEndSkill()
         {
             if (SkillState != SkillState.Active)
@@ -306,8 +380,18 @@ namespace GBG.GameAbilitySystem.Skill
         protected abstract void EndSkill();
 
 
-        protected virtual bool HasAnyCostOnActivateSkill() { return true; }
+        /// <summary>
+        /// 计算技能激活开销。
+        /// </summary>
+        /// <param name="costs">技能激活开销。</param>
+        /// <returns>激活技能是否有开销。</returns>
+        protected abstract bool CalculateSkillActivationCosts(out object costs);
 
+        /// <summary>
+        /// 获取技能激活生效几率。
+        /// 0.0代表不会激活，1.0代表必定激活。
+        /// </summary>
+        /// <returns>技能激活生效几率。</returns>
         protected virtual double GetChanceToTakeEffect() { return SkillSpec.ChanceToTakeEffect; }
 
         #endregion
@@ -315,15 +399,28 @@ namespace GBG.GameAbilitySystem.Skill
 
         #region Timing
 
+        /// <summary>
+        /// 剩余的技能冷却时间。
+        /// </summary>
         protected uint CooldownTimeRemaining { get; set; }
 
+        /// <summary>
+        /// 当前技能激活阶段的剩余持续时间。
+        /// </summary>
         protected uint ActiveStageTimeRemaining { get; set; }
 
+        /// <summary>
+        /// 技能Idle状态的持续时间。
+        /// </summary>
         private uint _idleDuration;
 
 
         public uint GetIdleDuration() { return _idleDuration; }
 
+        /// <summary>
+        /// 处理技能Idle计时。
+        /// </summary>
+        /// <param name="deltaTime"></param>
         private void ProcessIdleTime(uint deltaTime)
         {
             _idleDuration += deltaTime;
@@ -332,8 +429,16 @@ namespace GBG.GameAbilitySystem.Skill
 
         uint ISkill.GetCooldownTimeRemaining() { return CooldownTimeRemaining; }
 
+        /// <summary>
+        /// 获取技能冷却时间。
+        /// </summary>
+        /// <returns></returns>
         protected virtual uint GetCooldownDuration() { return SkillSpec.Cooldown; }
 
+        /// <summary>
+        /// 处理技能冷却计时。
+        /// </summary>
+        /// <param name="deltaTime"></param>
         protected virtual void ProcessCooldownTime(uint deltaTime)
         {
             if (CooldownTimeRemaining > deltaTime)
@@ -348,8 +453,16 @@ namespace GBG.GameAbilitySystem.Skill
 
         uint ISkill.GetActiveStageTimeRemaining() { return ActiveStageTimeRemaining; }
 
+        /// <summary>
+        /// 获取当前技能激活阶段持续时间。
+        /// </summary>
+        /// <returns></returns>
         protected virtual uint GetActiveStageDuration() { return SkillSpec.DefaultActiveDuration; }
 
+        /// <summary>
+        /// 处理当前技能激活阶段计时。
+        /// </summary>
+        /// <param name="deltaTime"></param>
         protected virtual void ProcessActiveStageTime(uint deltaTime)
         {
             if (ActiveStageTimeRemaining > deltaTime)
@@ -364,6 +477,12 @@ namespace GBG.GameAbilitySystem.Skill
         #endregion
 
 
+        /// <summary>
+        /// 尝试获取自定义逻辑参数。
+        /// </summary>
+        /// <param name="key">参数键。</param>
+        /// <param name="value">参数值。</param>
+        /// <returns>是否成功找到参数。</returns>
         protected bool TryGetCustomLogicParam(string key, out double value)
         {
             if (SkillSpec.CustomLogicParams == null)
