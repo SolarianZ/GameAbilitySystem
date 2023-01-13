@@ -2,10 +2,9 @@
 
 namespace GBG.GameAbilitySystem.Property
 {
-    // todo: Property Exclusion?
-
     /// <summary>
     /// 属性规则。
+    /// 同一个属性规则下，可以有很多属性实例（<see cref="Property"/>）。
     /// </summary>
     [Serializable]
     public class PropertySpec
@@ -25,7 +24,7 @@ namespace GBG.GameAbilitySystem.Property
         /// <summary>
         /// 属性作用位置。
         /// </summary>
-        public byte Position; // -> enum PropertyPosition
+        public byte Position; // 不使用PropertyPosition，以便扩展
 
         /// <summary>
         /// 最小值。
@@ -38,9 +37,14 @@ namespace GBG.GameAbilitySystem.Property
         public double MaxValue;
 
 
-        public static double Clamp(double propertyValue, PropertySpec propertySpec)
+        public double Clamp(double propertyValue)
         {
-            return Math.Clamp(propertyValue, propertySpec.MinValue, propertySpec.MaxValue);
+            return Math.Clamp(propertyValue, MinValue, MaxValue);
+        }
+
+        public override string ToString()
+        {
+            return $"PropertySpec(Id={Id}, FamilyId={FamilyId}, Position={Position}, Range=[{MinValue:F5},{MaxValue:F5}])";
         }
     }
 }

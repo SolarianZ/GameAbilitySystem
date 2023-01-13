@@ -67,7 +67,7 @@ namespace GBG.GameAbilitySystem.Property
                     $"Property spec not found, property.SpecId={propertySpecId}.");
             }
 
-            return PropertySpec.Clamp(propertyValue, propertySpec);
+            return propertySpec.Clamp(propertyValue);
         }
     }
 }

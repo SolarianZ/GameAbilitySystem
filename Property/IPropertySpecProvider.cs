@@ -7,14 +7,7 @@ namespace GBG.GameAbilitySystem.Property
     {
         bool ContainsPropertySpec(int propertySpecId);
 
-        PropertySpec GetPropertySpec(int propertySpecId);
-
         bool TryGetPropertySpec(int propertySpecId, out PropertySpec propertySpec);
-
-
-        bool RegisterCustomProperty(int propertyId, int propertySpecId);
-
-        bool UnregisterCustomProperty(int propertyId);
 
 
         int GetPropertyIdCountOfFamily(int propertyFamilyId);

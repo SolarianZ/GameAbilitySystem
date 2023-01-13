@@ -3,7 +3,8 @@
 namespace GBG.GameAbilitySystem.Property
 {
     /// <summary>
-    /// 属性数据。
+    /// 属性实例。
+    /// 属性实例受<see cref="PropertySpec"/>约束。
     /// </summary>
     [Serializable]
     public class Property
