@@ -2,12 +2,16 @@
 {
     public interface ISkillManager
     {
-        //todo: bool HasSkill();
+        bool HasSkill(int skillId);
 
         bool GiveSkill(SkillSpec skillSpec);
 
         bool RemoveSkill(int skillInstanceId);
 
         bool RemoveAllSkills();
+
+        bool BanSkill(int skillId);
+
+        bool UnbanSkill(int skillId);
     }
 }

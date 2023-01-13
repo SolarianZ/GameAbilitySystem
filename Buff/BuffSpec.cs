@@ -51,6 +51,11 @@ namespace GBG.GameAbilitySystem.Buff
         public BuffStackingMode StackingMode;
 
         /// <summary>
+        /// 最大叠加次数。
+        /// </summary>
+        public ushort MaxStackingNumber;
+
+        /// <summary>
         /// Buff标签。此标签不会标记Buff持有者，只用于标记Buff本身。
         /// </summary>
         public List<string> BuffTags;
@@ -61,20 +66,19 @@ namespace GBG.GameAbilitySystem.Buff
         public List<string> TagEffects;
 
         /// <summary>
-        /// 提供的属性。
-        /// 存储<see cref="Property.Property.Id"/>。
+        /// 提供的属性（<see cref="Property.Property.Id"/>）。
         /// </summary>
         public List<int> PropertyEffects;
 
         /// <summary>
-        /// 赋予的技能。
-        /// 存储<see cref="Skill.SkillSpec.Id"/>。
+        /// 赋予的技能（<see cref="Skill.SkillSpec.Id"/>）。
         /// </summary>
         public List<int> SkillGrantEffects;
 
         /// <summary>
-        /// 禁用的技能。注意，此效果并不移除技能，只是禁用。
-        /// 存储<see cref="Skill.SkillSpec.Id"/>。
+        /// 禁用的技能（<see cref="Skill.SkillSpec.Id"/>）。
+        /// 此效果并不移除技能，只是禁用。
+        /// 如果要禁用技能族，请将目标技能族中的所有技能Id填入此表。
         /// </summary>
         public List<int> SkillBanEffects;
 

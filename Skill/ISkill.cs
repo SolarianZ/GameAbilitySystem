@@ -3,6 +3,16 @@
 namespace GBG.GameAbilitySystem.Skill
 {
     public delegate void SkillActivatedCallback(SkillHandle skillHandle, bool tookEffect);
+    public enum SkillState : byte
+    {
+        Idle = 0,
+
+        Cooldown = 1,
+
+        Active = 2,
+
+        //Banned,
+    }
 
     /// <summary>
     /// 技能。
@@ -30,11 +40,15 @@ namespace GBG.GameAbilitySystem.Skill
         /// </summary>
         ushort Level { get; }
 
-        bool IsActive { get; }
+        /// <summary>
+        /// 技能是否被禁用。
+        /// </summary>
+        bool IsBanned { get; }
 
-        bool CanActivate { get; }
-
-        bool CanCancel { get; }
+        /// <summary>
+        /// 技能状态。
+        /// </summary>
+        SkillState SkillState { get; }
 
 
         event SkillActivatedCallback OnSkillActivated;
@@ -44,84 +58,35 @@ namespace GBG.GameAbilitySystem.Skill
         event Action<SkillHandle> OnSkillEnded;
 
 
-        /// <summary>
-        /// 技能是否需要执行逻辑帧更新。
-        /// </summary>
-        bool NeedTick();
+        void Tick(uint deltaTime);
 
         void OnEquip(ISkillOwner skillOwner, object persistentContext);
 
         void OnUnequip();
 
-        void Tick(uint deltaTime);
+        void Ban();
 
-        bool IsValid();
+        void Unban();
+
+
+        uint GetIdleDuration();
 
         uint GetCooldownTimeRemaining();
 
-        uint GetActiveTimeRemaining();
+        /// <summary>
+        /// 获取技能激活阶段的剩余时间。
+        /// 技能的一个激活阶段时间耗尽后，可能进入另一个激活阶段，也可能结束技能。
+        /// </summary>
+        /// <returns></returns>
+        uint GetActiveStageTimeRemaining();
+
+
+        bool CanActivateSkill();
 
         bool TryActivateSkill();
 
+        bool CanCancelSkill();
+
         bool TryCancelSkill();
-    }
-
-    // 技能实例可以动态替换Spec吗？
-
-    public abstract class SkillBase //: ISkill
-    {
-        protected SkillSpec SkillSpec { get; }
-
-        protected SkillBase(SkillSpec skillSpec)
-        {
-            SkillSpec = skillSpec;
-        }
-
-        public bool NeedTick()
-        {
-            switch (SkillSpec.ActivationMode)
-            {
-                case SkillActivationMode.Manual:
-                case SkillActivationMode.Immediate:
-                case SkillActivationMode.Event:
-                    return GetCooldownDuration() > 0 || GetActiveDuration() > 0;
-
-                case SkillActivationMode.Periodic:
-                case SkillActivationMode.PeriodicDelay:
-                    return true;
-
-                default:
-                    return CustomLogicNeedTick();
-            }
-        }
-
-        protected virtual bool CustomLogicNeedTick() { return true; }
-
-
-        protected virtual uint GetCooldownDuration() { return SkillSpec.Cooldown; }
-
-        protected virtual uint GetActiveDuration() { return SkillSpec.ActiveDuration; }
-
-
-        protected bool TryGetCustomLogicParam(string key, out double value)
-        {
-            if (SkillSpec.CustomLogicParams == null)
-            {
-                value = default;
-                return false;
-            }
-
-            foreach (var param in SkillSpec.CustomLogicParams)
-            {
-                if (param.Key.Equals(key))
-                {
-                    value = param.Value;
-                    return true;
-                }
-            }
-
-            value = default;
-            return false;
-        }
     }
 }

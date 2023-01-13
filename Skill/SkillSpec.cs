@@ -55,7 +55,7 @@ namespace GBG.GameAbilitySystem.Skill
         /// 技能激活后，激活状态的持续时间。
         /// 技能实现类中，可以根据需求调整实际的持续时间。
         /// </summary>
-        public uint ActiveDuration;
+        public uint DefaultActiveDuration;
 
         /// <summary>
         /// 冷却时间（毫秒）。
