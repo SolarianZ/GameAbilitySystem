@@ -20,6 +20,11 @@ namespace GBG.GameAbilitySystem.Skill
     public interface ISkill
     {
         /// <summary>
+        /// 技能实例Id。
+        /// </summary>
+        int InstanceId { get; }
+
+        /// <summary>
         /// 【主键】技能规则Id。0为无效值。
         /// </summary>
         int Id { get; }
@@ -31,19 +36,24 @@ namespace GBG.GameAbilitySystem.Skill
         int FamilyId { get; }
 
         /// <summary>
-        /// 技能实例Id。
-        /// </summary>
-        int InstanceId { get; }
-
-        /// <summary>
         /// 技能等级。
         /// </summary>
         ushort Level { get; }
 
         /// <summary>
+        /// 激活方式。
+        /// </summary>
+        byte ActivationMode { get; }
+
+        /// <summary>
         /// 技能是否被禁用。
         /// </summary>
         bool IsBanned { get; }
+
+        /// <summary>
+        /// 已激活次数。
+        /// </summary>
+        int ActivatedTimes { get; }
 
         /// <summary>
         /// 技能状态。
@@ -57,6 +67,10 @@ namespace GBG.GameAbilitySystem.Skill
 
         event Action<SkillHandle> OnSkillEnded;
 
+        event Action<SkillHandle> OnSkillBanned;
+
+        event Action<SkillHandle> OnSkillUnbanned;
+
 
         void Tick(uint deltaTime);
 
@@ -64,10 +78,12 @@ namespace GBG.GameAbilitySystem.Skill
 
         void OnUnequip();
 
-        void Ban();
+        bool TryBan();
 
-        void Unban();
+        bool TryUnban();
 
+
+        uint GetActivationPeriod();
 
         uint GetIdleDuration();
 
@@ -80,6 +96,13 @@ namespace GBG.GameAbilitySystem.Skill
         /// <returns></returns>
         uint GetActiveStageTimeRemaining();
 
+
+        /// <summary>
+        /// 计算技能激活开销。
+        /// </summary>
+        /// <param name="costs">技能激活开销。</param>
+        /// <returns>激活技能是否有开销。</returns>
+        bool CalculateSkillActivationCosts(out object costs);
 
         bool CanActivateSkill();
 

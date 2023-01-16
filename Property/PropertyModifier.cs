@@ -28,11 +28,12 @@ namespace GBG.GameAbilitySystem.Property
         }
 
 
-        public static double GetValue(IEnumerable<PropertyModifier> modifiers)
+        public static double GetValue(IList<PropertyModifier> modifiers)
         {
             var modifier = new PropertyModifier();
-            foreach (var mod in modifiers)
+            for (int i = 0; i < modifiers.Count; i++)
             {
+                PropertyModifier mod = modifiers[i];
                 modifier += mod;
             }
 
@@ -40,12 +41,12 @@ namespace GBG.GameAbilitySystem.Property
             return result;
         }
 
-        public static double GetValue(List<PropertyModifier>.Enumerator modifiers)
+        public static double GetValue(IEnumerable<PropertyModifier> modifiers)
         {
             var modifier = new PropertyModifier();
-            while (modifiers.MoveNext())
+            foreach (var mod in modifiers)
             {
-                modifier += modifiers.Current;
+                modifier += mod;
             }
 
             var result = modifier.GetValue();

@@ -20,7 +20,11 @@ namespace GBG.GameAbilitySystem.Skill
 
         public ushort Level => SkillSpec.Level;
 
+        public byte ActivationMode => SkillSpec.ActivationMode;
+
         public bool IsBanned { get; private set; }
+
+        public int ActivatedTimes { get; private set; }
 
         public SkillState SkillState { get; private set; }
 
@@ -32,13 +36,15 @@ namespace GBG.GameAbilitySystem.Skill
         //protected virtual bool EnableTickTimeShift => true;
 
 
-        // todo: raise skill events
-
         public event SkillActivatedCallback? OnSkillActivated;
 
         public event Action<SkillHandle>? OnSkillCanceled;
 
         public event Action<SkillHandle>? OnSkillEnded;
+
+        public event Action<SkillHandle> OnSkillBanned;
+
+        public event Action<SkillHandle> OnSkillUnbanned;
 
 
         /// <summary>
@@ -83,11 +89,6 @@ namespace GBG.GameAbilitySystem.Skill
 
         void ISkill.Tick(uint deltaTime)
         {
-            if (!NeedTick())
-            {
-                return;
-            }
-
             OnPreTick(deltaTime);
 
             var lastState = SkillState;
@@ -134,27 +135,6 @@ namespace GBG.GameAbilitySystem.Skill
             if (lastState != SkillState)
             {
                 // todo: Skill state changed
-            }
-        }
-
-        /// <summary>
-        /// 技能是否需要执行逻辑帧更新。
-        /// </summary>
-        protected virtual bool NeedTick()
-        {
-            switch (SkillSpec.ActivationMode)
-            {
-                case SkillActivationMode.Manual:
-                case SkillActivationMode.Immediate:
-                case SkillActivationMode.Event:
-                    return GetCooldownDuration() > 0 || GetActiveStageDuration() > 0;
-
-                case SkillActivationMode.Periodic:
-                case SkillActivationMode.PeriodicDelay:
-                    return true;
-
-                default:
-                    return true;
             }
         }
 
@@ -224,37 +204,49 @@ namespace GBG.GameAbilitySystem.Skill
         /// </summary>
         protected abstract void OnUnequip();
 
-        void ISkill.Ban()
+        bool ISkill.TryBan()
         {
             if (IsBanned)
             {
-                return;
+                return true;
             }
 
-            IsBanned = true;
-            OnBanned();
+            if (Ban())
+            {
+                IsBanned = true;
+                OnSkillBanned?.Invoke(new SkillHandle(InstanceId, Id, FamilyId));
+            }
+
+            return IsBanned;
         }
 
         /// <summary>
         /// 技能被禁用时回调。
         /// </summary>
-        protected abstract void OnBanned();
+        protected abstract bool Ban();
 
-        void ISkill.Unban()
+        bool ISkill.TryUnban()
         {
             if (!IsBanned)
             {
-                return;
+                return true;
             }
 
-            IsBanned = false;
-            OnUnbanned();
+
+            if (Unbanned())
+            {
+                IsBanned = false;
+                OnSkillUnbanned?.Invoke(new SkillHandle(InstanceId, Id, FamilyId));
+
+            }
+
+            return !IsBanned;
         }
 
         /// <summary>
         /// 技能被接触禁用时回调。
         /// </summary>
-        protected abstract void OnUnbanned();
+        protected abstract bool Unbanned();
 
         #endregion
 
@@ -283,6 +275,13 @@ namespace GBG.GameAbilitySystem.Skill
 
         protected abstract bool CanActivateSkillIgnoreCosts(); // => SkillState == SkillState.Idle;
 
+        /// <summary>
+        /// 计算技能激活开销。
+        /// </summary>
+        /// <param name="costs">技能激活开销。</param>
+        /// <returns>激活技能是否有开销。</returns>
+        public abstract bool CalculateSkillActivationCosts(out object costs);
+
 
         public bool TryActivateSkill()
         {
@@ -296,6 +295,10 @@ namespace GBG.GameAbilitySystem.Skill
             {
                 SkillState = SkillState.Cooldown;
                 CooldownTimeRemaining = GetCooldownDuration();
+
+                // 注意，概率未命中时，判定为技能激活失败了！
+                OnSkillActivated?.Invoke(new SkillHandle(InstanceId, Id, FamilyId), false);
+
                 return false;
             }
 
@@ -306,6 +309,7 @@ namespace GBG.GameAbilitySystem.Skill
                 return false;
             }
 
+            ActivatedTimes++;
             SkillState = SkillState.Active;
             ActiveStageTimeRemaining = GetActiveStageDuration();
 
@@ -313,6 +317,8 @@ namespace GBG.GameAbilitySystem.Skill
             {
                 SkillOwner.CommitSkillActivationCosts(costs);
             }
+
+            OnSkillActivated?.Invoke(new SkillHandle(InstanceId, Id, FamilyId), true);
 
             return true;
         }
@@ -341,6 +347,9 @@ namespace GBG.GameAbilitySystem.Skill
 
             SkillState = SkillState.Cooldown;
             CooldownTimeRemaining = GetCooldownDuration();
+
+            OnSkillCanceled?.Invoke(new SkillHandle(InstanceId, Id, FamilyId));
+
             return true;
         }
 
@@ -369,6 +378,8 @@ namespace GBG.GameAbilitySystem.Skill
             SkillState = SkillState.Cooldown;
             CooldownTimeRemaining = GetCooldownDuration();
 
+            OnSkillEnded?.Invoke(new SkillHandle(InstanceId, Id, FamilyId));
+
             return true;
         }
 
@@ -379,13 +390,6 @@ namespace GBG.GameAbilitySystem.Skill
         /// </summary>
         protected abstract void EndSkill();
 
-
-        /// <summary>
-        /// 计算技能激活开销。
-        /// </summary>
-        /// <param name="costs">技能激活开销。</param>
-        /// <returns>激活技能是否有开销。</returns>
-        protected abstract bool CalculateSkillActivationCosts(out object costs);
 
         /// <summary>
         /// 获取技能激活生效几率。
@@ -414,6 +418,8 @@ namespace GBG.GameAbilitySystem.Skill
         /// </summary>
         private uint _idleDuration;
 
+
+        public virtual uint GetActivationPeriod() { return SkillSpec.ActivationPeriod; }
 
         public uint GetIdleDuration() { return _idleDuration; }
 

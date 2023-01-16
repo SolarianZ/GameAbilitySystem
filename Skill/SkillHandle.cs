@@ -9,5 +9,12 @@
         public readonly int SkillFamilyId;
 
         //public readonly int SkillLevel;
+
+        public SkillHandle(int skillInstanceId, int skillId, int skillFamilyId)
+        {
+            SkillInstanceId = skillInstanceId;
+            SkillId = skillId;
+            SkillFamilyId = skillFamilyId;
+        }
     }
 }

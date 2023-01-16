@@ -44,4 +44,6 @@
 
         bool Unstack();
     }
+
+    // todo: IBuffEffects ?
 }

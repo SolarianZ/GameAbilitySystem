@@ -35,7 +35,7 @@ namespace GBG.GameAbilitySystem.Skill
         /// <summary>
         /// 激活方式。
         /// </summary>
-        public SkillActivationMode ActivationMode;
+        public byte ActivationMode; // enum SkillActivationMode
 
         /// <summary>
         /// 自动激活周期（毫秒）。
